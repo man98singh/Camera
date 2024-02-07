@@ -7,6 +7,7 @@ package com.example.camera4k
 
 import android.Manifest
 import android.content.ContentValues
+import android.content.ContentValues.TAG
 import android.os.Build
 import androidx.compose.foundation.layout.fillMaxSize
 import android.os.Bundle
@@ -21,8 +22,14 @@ import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
 import androidx.camera.view.PreviewView
 import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.video.MediaStoreOutputOptions
+import androidx.camera.video.Recorder
+import androidx.camera.video.Recording
+import androidx.camera.video.VideoCapture
+import androidx.camera.video.VideoRecordEvent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -54,7 +61,12 @@ import java.util.concurrent.Executors
 // MainActivity inherits from ComponentActivity, which is a base class for activities using Jetpack Compose
 class MainActivity : ComponentActivity() {
 
+    private var isRecording = mutableStateOf(false)
+
     private lateinit var viewBinding : ActivityMainBinding
+    private var videoCapture: VideoCapture<Recorder>? = null
+    private var recording: Recording? = null
+
     private var imageCapture : ImageCapture? = null
     private lateinit var cameraExecutor: ExecutorService
 
@@ -98,6 +110,47 @@ class MainActivity : ComponentActivity() {
         })
     }
 
+    private fun captureVideo() {
+        if (recording == null) {
+            // Start recording
+            val name = SimpleDateFormat(FILENAME_FORMAT, Locale.US).format(System.currentTimeMillis())
+            val contentValues = ContentValues().apply {
+                put(MediaStore.MediaColumns.DISPLAY_NAME, name)
+                put(MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
+                if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
+                    put(MediaStore.Video.Media.RELATIVE_PATH, "Movies/CameraX")
+                }
+            }
+
+            val mediaStoreOutputOptions = MediaStoreOutputOptions.Builder(contentResolver, MediaStore.Video.Media.EXTERNAL_CONTENT_URI)
+                .setContentValues(contentValues)
+                .build()
+
+            recording = videoCapture?.output?.prepareRecording(this, mediaStoreOutputOptions)
+                ?.start(ContextCompat.getMainExecutor(this)) { videoRecordEvent ->
+                    when (videoRecordEvent) {
+                        is VideoRecordEvent.Start -> {
+                            Log.d(TAG, "Recording started")
+                            isRecording.value = true
+                        }
+                        is VideoRecordEvent.Finalize -> {
+                            if (videoRecordEvent.error == null) {
+                                val savedUri = videoRecordEvent.outputResults.outputUri
+                                Log.d(TAG, "Recording saved to $savedUri")
+                            } else {
+                                Log.e(TAG, "Recording error: ${videoRecordEvent.error}")
+                            }
+                            recording = null
+                            isRecording.value = false
+                        } }}
+
+        } else {
+            // Stop recording
+            recording?.stop()
+            recording = null
+            isRecording.value = false
+        }
+    }
 
 // Annotation to indicate the use of an experimental API for handling permissions
 
@@ -119,7 +172,9 @@ fun CameraPreview() {
 
 
         // AndroidView is a Composable that allows you to use Android Views
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.fillMaxSize()) { Column {
+
+        }
 
 
             AndroidView(
@@ -148,14 +203,37 @@ fun CameraPreview() {
                 },
                 modifier = Modifier.fillMaxSize()// Modifier to make the view fill the maximum available size
             )
-                Button(onClick = { takePhoto() },modifier = Modifier
-                    .fillMaxWidth()
+            Column(
+                modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 4.dp)) {
-                    Text("Capture photo")
-                    
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Button(onClick = { takePhoto() }) {
+                    Text("Capture Photo")
                 }
-        } }
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(onClick = { captureVideo() }) {
+                    Text(if (isRecording.value) "Stop Recording" else "Start Recording")
+
+                }
+
+            }
+        }
+    }
+//                 Button(onClick = { takePhoto() },modifier = Modifier
+//                     .fillMaxWidth()
+//                     .align(Alignment.BottomCenter)
+//                     .padding(bottom = 4.dp)) {
+//                    Text("Capture photo")
+//                }
+//
+//               Spacer(modifier = Modifier.height(8.dp))
+//                Button(onClick = { captureVideo() }) {
+//                Text("Record Video")
+//            }
+//        } }
             else {
             // This is displayed if the user denies the camera permission
             Text("Camera permission denied. Please grant permission to use the camera.")
