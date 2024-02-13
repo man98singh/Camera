@@ -110,47 +110,47 @@ class MainActivity : ComponentActivity() {
         })
     }
 
-    private fun captureVideo() {
-        if (recording == null) {
-            // Start recording
-            val name = SimpleDateFormat(FILENAME_FORMAT, Locale.US).format(System.currentTimeMillis())
-            val contentValues = ContentValues().apply {
-                put(MediaStore.MediaColumns.DISPLAY_NAME, name)
-                put(MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
-                if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
-                    put(MediaStore.Video.Media.RELATIVE_PATH, "Movies/CameraX")
-                }
-            }
-
-            val mediaStoreOutputOptions = MediaStoreOutputOptions.Builder(contentResolver, MediaStore.Video.Media.EXTERNAL_CONTENT_URI)
-                .setContentValues(contentValues)
-                .build()
-
-            recording = videoCapture?.output?.prepareRecording(this, mediaStoreOutputOptions)
-                ?.start(ContextCompat.getMainExecutor(this)) { videoRecordEvent ->
-                    when (videoRecordEvent) {
-                        is VideoRecordEvent.Start -> {
-                            Log.d(TAG, "Recording started")
-                            isRecording.value = true
-                        }
-                        is VideoRecordEvent.Finalize -> {
-                            if (videoRecordEvent.error == null) {
-                                val savedUri = videoRecordEvent.outputResults.outputUri
-                                Log.d(TAG, "Recording saved to $savedUri")
-                            } else {
-                                Log.e(TAG, "Recording error: ${videoRecordEvent.error}")
-                            }
-                            recording = null
-                            isRecording.value = false
-                        } }}
-
-        } else {
-            // Stop recording
-            recording?.stop()
-            recording = null
-            isRecording.value = false
-        }
-    }
+//    private fun captureVideo() {
+//        if (recording == null) {
+//            // Start recording
+//            val name = SimpleDateFormat(FILENAME_FORMAT, Locale.US).format(System.currentTimeMillis())
+//            val contentValues = ContentValues().apply {
+//                put(MediaStore.MediaColumns.DISPLAY_NAME, name)
+//                put(MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
+//                if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
+//                    put(MediaStore.Video.Media.RELATIVE_PATH, "Movies/CameraX")
+//                }
+//            }
+//
+//            val mediaStoreOutputOptions = MediaStoreOutputOptions.Builder(contentResolver, MediaStore.Video.Media.EXTERNAL_CONTENT_URI)
+//                .setContentValues(contentValues)
+//                .build()
+//
+//            recording = videoCapture?.output?.prepareRecording(this, mediaStoreOutputOptions)
+//                ?.start(ContextCompat.getMainExecutor(this)) { videoRecordEvent ->
+//                    when (videoRecordEvent) {
+//                        is VideoRecordEvent.Start -> {
+//                            Log.d(TAG, "Recording started")
+//                            isRecording.value = true
+//                        }
+//                        is VideoRecordEvent.Finalize -> {
+//                            if (videoRecordEvent.error == null) {
+//                                val savedUri = videoRecordEvent.outputResults.outputUri
+//                                Log.d(TAG, "Recording saved to $savedUri")
+//                            } else {
+//                                Log.e(TAG, "Recording error: ${videoRecordEvent.error}")
+//                            }
+//                            recording = null
+//                            isRecording.value = false
+//                        } }}
+//
+//        } else {
+//            // Stop recording
+//            recording?.stop()
+//            recording = null
+//            isRecording.value = false
+//        }
+//    }
 
 // Annotation to indicate the use of an experimental API for handling permissions
 
